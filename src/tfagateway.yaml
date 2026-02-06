@@ -1,0 +1,240 @@
+esphome:
+  name: "tfagateway"
+  friendly_name: "TFA-Gateway"
+  comment: "Author KHit6 (khit6@gmx.net) Sensor TFA 30.3206.02, many credits to emax73 https://github.com/emax73/TFA-Spring-sensor-30.3206.02"
+  project:
+    name: "KHit6.tfagateway"
+    version: "2.1.0"
+  includes:
+    - tfa_30_32xx.h
+    - bit_util.h
+    - tfa_30_32xx.cpp
+    - bit_util.cpp
+
+esp8266:
+  board: esp8285
+
+wifi:
+  networks:
+    - ssid:     !secret wifi_ssid-1
+      password: !secret wifi_password-1
+    - ssid:     !secret wifi_ssid-2
+      password: !secret wifi_password-2
+
+# fallback access point, mandatory if captive_portal is enabled
+  ap:
+    ssid:     !secret fallback-ssid
+    password: !secret fallback_password
+
+# legacy API to homeasssistant or iobroker
+api:
+#  encryption:
+#    key: !secret temperator_api_key
+
+# over the air updates
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+#web_server:
+captive_portal:
+
+substitutions:
+  TIMEOUT: 180s
+
+# modified rc_switch_protocol.cpp and rc_switch_protocol.h
+external_components:
+  - source: external 
+
+logger: 
+
+status_led:
+  pin:
+    number: GPIO13
+    inverted: yes
+    
+
+# The special GPIO applies only to Sonoff rf-bridge-V2 with modifications 
+# Please view https://github.com/arendst/Tasmota/discussions/13283
+# and here https://community.home-assistant.io/t/new-sonoff-rf-bridge-board-need-flashing-help/344326/17
+# USBRX = GPIO4 ---> receiver
+# receiver = pin 5 of the 8-legged chip (the one closer to the wifi antenna) 
+# SYN470R or Wisesun WS490
+remote_receiver:
+  pin: GPIO04
+  # dump: raw
+  tolerance: # signal receive is very sensitive to this tolerance!
+    type: percentage 
+    value: 25%
+  filter: 200us
+  idle: 4ms # sync is about 4 * 1.7 ms
+  
+  on_rc_switch:
+    then: 
+      - lambda: |-
+          { 
+            ESP_LOGD("on_rc_switch: ", "protocol %d, code 0x%016llx, size %d", x.protocol, x.code, x.size);
+
+            // caution: rc_switch_protocol.cpp and rc_switch_protocol.h must be modified
+            if ((x.protocol == 1) && (x.size == 41)) {
+              TFA_30_32XX tfa = TFA_30_32XX(x.protocol, x.code, x.size); 
+
+              if (!tfa.double_verify())
+                return;
+          
+              uint8_t channel           = tfa.get_channel();
+              uint8_t address           = tfa.get_address();
+              bool battery_state        = tfa.get_battery_state();
+              float temperature         = tfa.get_temperature();
+              float humidity            = tfa.get_humidity();
+              uint8_t checksum          = tfa.get_checksum();
+              uint8_t computed_checksum = tfa.get_computed_checksum();
+
+              ESP_LOGI("rc_switch custom: ", "address %u, channel %u, temp %.1f, hum %.0f, battery %d, checksum %u, computed_checksum %u", 
+                address, 
+                channel, 
+                temperature,
+                humidity, 
+                battery_state, 
+                checksum, 
+                computed_checksum);
+
+              if (checksum == computed_checksum) {
+                switch (channel) {
+                  case 0: {
+                      id(t1).publish_state(temperature);
+                      id(h1).publish_state(humidity);
+                      id(b1).publish_state(battery_state);
+                      break;
+                  }
+                  case 1: {
+                      id(t2).publish_state(temperature);
+                      id(h2).publish_state(humidity);
+                      id(b2).publish_state(battery_state);
+                      break;
+                  }
+                  case 2: {
+                      id(t3).publish_state(temperature);
+                      id(h3).publish_state(humidity);
+                      id(b3).publish_state(battery_state);
+                      break;
+                  }
+                  case 3: {
+                      id(t4).publish_state(temperature);
+                      id(h4).publish_state(humidity);
+                      id(b4).publish_state(battery_state);
+                      break;
+                  }
+                }
+              }
+            }
+          };
+
+sensor:
+  - platform: template
+    name: "Temperature-1"
+    id: t1
+    unit_of_measurement: "°C"
+    device_class: "temperature"
+    state_class: "measurement"
+    accuracy_decimals: 1
+    filters:
+      - timeout: $TIMEOUT
+      - delta: "0.05"
+  - platform: template
+    name: "Temperature-2"
+    id: t2
+    unit_of_measurement: "°C"
+    device_class: "temperature"
+    state_class: "measurement"
+    accuracy_decimals: 1
+    filters:
+      - timeout: $TIMEOUT
+      - delta: "0.05"
+  - platform: template
+    name: "Temperature-3"
+    id: t3
+    unit_of_measurement: "°C"
+    device_class: "temperature"
+    state_class: "measurement"
+    accuracy_decimals: 1
+    filters:
+      - timeout: $TIMEOUT
+      - delta: "0.05"
+  - platform: template
+    name: "Temperature-4"
+    id: t4
+    unit_of_measurement: "°C"
+    device_class: "temperature"
+    state_class: "measurement"
+    accuracy_decimals: 1
+    filters:
+      - timeout: $TIMEOUT
+      - delta: "0.05"
+
+  - platform: template
+    name: "Humidity-1"
+    id: h1
+    unit_of_measurement: "%"
+    device_class: "humidity"
+    state_class: "measurement"
+    accuracy_decimals: 0
+    filters:
+      - timeout: $TIMEOUT
+      - delta: "1.0"
+  - platform: template
+    name: "Humidity-2"
+    id: h2
+    unit_of_measurement: "%"
+    device_class: "humidity"
+    state_class: "measurement"
+    accuracy_decimals: 0
+    filters:
+      - timeout: $TIMEOUT
+      - delta: "1.0"
+  - platform: template
+    name: "Humidity-3"
+    id: h3
+    unit_of_measurement: "%"
+    device_class: "humidity"
+    state_class: "measurement"
+    accuracy_decimals: 0
+    filters:
+      - timeout: $TIMEOUT
+      - delta: "1.0"
+  - platform: template
+    name: "Humidity-4"
+    id: h4
+    unit_of_measurement: "%"
+    device_class: "humidity"
+    state_class: "measurement"
+    accuracy_decimals: 0
+    filters:
+      - timeout: $TIMEOUT
+      - delta: "1.0"
+
+binary_sensor:
+  - platform: template
+    name: "Battery-1"
+    id: b1
+    filters:
+      - delayed_on_off: 10s
+    entity_category: diagnostic    
+  - platform: template
+    name: "Battery-2"
+    id: b2
+    filters:
+      - delayed_on_off: 10s
+    entity_category: diagnostic    
+  - platform: template
+    name: "Battery-3"
+    id: b3
+    filters:
+      - delayed_on_off: 10s
+    entity_category: diagnostic    
+  - platform: template
+    name: "Battery-4"
+    id: b4
+    filters:
+      - delayed_on_off: 10s
+    entity_category: diagnostic    
