@@ -103,13 +103,14 @@ bool RCSwitchBase::expect_sync_single(RemoteReceiveData &src) const {
     if (!src.peek_space(this->sync_low_, 1))
       return false;
   } else {
-    // We can't peek a space at the beginning because signals starts with a low to high transition.
-    // this long space at the beginning is the separation between the transmissions itself, so it is actually
-    // added at the end kind of artificially (by the value given to "idle:" option by the user in the yaml)
-    if (!src.peek_mark(this->sync_low_))
+    // If the signal is inverted then a idle state is inverted, too. 
+    // so nothing has to be handled different compared to one or zero expectation
+    // Because all pulse train receivers use the same data 
+    // it would be a better solution to do inversion for the 'remote_receiver:' near "pin:" 
+    if (!src.peek_space(this->sync_high_))
       return false;
-    src.advance(1);
-    return true;
+    if (!src.peek_mark(this->sync_low_, 1))
+      return false;
   }
   src.advance(2);
   return true;
