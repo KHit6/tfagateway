@@ -1,0 +1,32 @@
+# configuration for an ESP32-C3 supermini
+
+esphome:
+  name: "tfagateway-c3"
+  friendly_name: "TFA-Gateway"
+  comment: "Author KHit6 (khit6@gmx.net)"
+  project:
+    name: "KHit6.tfagateway"
+    version: "3.0.0"
+  includes:
+    - tfa_30_32xx.h
+    - bit_util.h
+    - tfa_30_32xx.cpp
+    - bit_util.cpp
+  platformio_options:
+    board_build.flash_mode: dio
+
+esp32:
+  variant: esp32c3
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+substitutions:
+  TIMEOUT: 180s
+  RX_PIN: GPIO04
+  TX_PIN: GPIO05
+  LED_PIN: GPIO10
+
+packages:
+  - !include common.yaml
+
