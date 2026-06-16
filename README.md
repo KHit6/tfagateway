@@ -4,11 +4,11 @@
 Within a home automation project I wanted to acquire the outdoor temperature and humidity, too. An installed outdoor sensor belonging to a simple weather station from TFA Dostmann (some are identical to La Crosse outdoor sensors) already transmits the information at a frequency of 433 MHz.
 To make things inexpensive and easy and yet in a nice case I bought a "Sonoff RF-Bridge". Unfortunately it was the bridge in version V2 with a currently not hacked RF-pre-processor. So I decided to bypass the pre-processor like described [here](https://community.home-assistant.io/t/new-sonoff-rf-bridge-board-need-flashing-help/344326/17). At the end this is a standard ESP8266 receiving a simple RF extracted bit stream at a GPIO-pin. 
 
-Therefore my basic ESPHOME recipe must be valid for every ESPHOME supported device combined with an inexpensive 433 MHz AM-receiver unit (like like RXB6). This in mind, I designed a suitable hardware. There is no need to modify an existing hardware, like the Sonoff RF-Bridge and you can upload your firmware via USB without connecting a bridging interface. Please have a look at my companion project [RF-WiFi-Bridge](https://github.com/KHit6/RF-WiFi-Bridge/).
+Therefore my basic ESPHOME recipe must be valid for every ESPHOME supported device combined with an inexpensive 433 MHz ASK/OOK receiver unit (like the popular RXB6). This in mind, I designed a suitable hardware. There is no need to modify an existing hardware, like the Sonoff RF-Bridge and you can upload your firmware via USB without connecting a bridging interface. Please have a look at my companion project [RF-WiFi-Bridge](https://github.com/KHit6/RF-WiFi-Bridge/).
 
 Within homeassistant - or via MQTT or other home automation systems  - you can receive data from up to 4 different devices, each providing temperature, humidity and battery state. After some tweaks on ESPHOME's remote_base/rc_switch_protocol.[h|cpp] receiving is very reliable. 
 
-I've successful tested with TFA Dostmann 30.3206.02 and 30.3249.02 devices. I guess it will work with more 30.32XX.XX devices, but maybe their workload is differently encoded. 
+I've successful tested with TFA Dostmann 30.3206.02 and 30.3249.02 devices. I guess it will work with other 30.32XX.XX devices, but maybe their workload is differently encoded. 
 
 ![TFA 30.3206.02](doc/30.3206.02.png)   ![TFA 30.3249.02](doc/30.3249.02.png)
 
@@ -18,14 +18,14 @@ Currently I provide three esphome configuration yaml-files:
   * tfagateway-c3-supermini.yaml - it targets to [RF-WiFi-Bridge](https://github.com/KHit6/RF-WiFi-Bridge/) hardware with an ESP32-C3 supermini assembled.
   * tfagateway-xiao-s3.yaml - it targets to [RF-WiFi-Bridge](https://github.com/KHit6/RF-WiFi-Bridge/) hardware with an Seeed studio ESP32-S3 assembled.
   
-All three configurations are interchangeable in terms of functionality..
+All three configurations are interchangeable in terms of functionality.
 
 ## Implementation
 My solution consists of the ESPHOME yaml-file(s) enhanced with 4 C++ extension files and minor but important modifications on ESPHOME's files rc_switch_protocol.[h|cpp]. I've put the modified files from ESPHOME's sources together with lots of unmodified files from the same source in a separate 'external' directory.
 
 My first experiments with ESPHOME's rc_switch_protocol receive implementation did not behave like expected. For a successful receive of a valid pulse train I had to use a huge timing tolerance of 55 percent of the expected pulse lengths. Receiving was very unreliable. The raw output shows at the front of each pulse train one up to four sync pulses but the rc_switch_protocol implementation solely expects one sync pulse. So I modified 'rc_switch_protocol.cpp' to accept more sync pulses before break.
 
- `rc_switch_protocol` only offers the option with `binary_sensor` to configure a user-defined bit timing parameters. No such solution exists for 'sensor' devices. Therefore, I added my measured and calculated timings to `RC_SWITCH_PROTOCOLS[]`. `RCSwitchBase(773, 803, 228, 511, 468, 266, false)` works well with 25% tolerance.
+ To configure user-defined bit timing parameters `rc_switch_protocol` only offers the option with `binary_sensor`. No such solution exists for 'sensor' devices. Therefore, I added my measured and calculated timings to `RC_SWITCH_PROTOCOLS[]`. `RCSwitchBase(773, 803, 228, 511, 468, 266, false)` works well with 25% tolerance.
 
 To verify the data's sanity I've added a backwards compatible data length (size) to 
 
@@ -57,7 +57,7 @@ If the compilation succeeds:
 
 If the compilation succeeds again, do:
   * Connect your target gateway device physically to your computer (USB or serial)
-  * call 'esphome run src/tfagateway.yaml' and select the first time the serial device. If your credentials match the next times you can update over the air (OTA)
+  * call 'esphome run src/tfagateway.yaml' and select the first time the USB/serial device. If your credentials match the next times you can update over the air (OTA)
 
 If everything succeds you will see printouts like this:
 
@@ -70,7 +70,7 @@ If everything succeds you will see printouts like this:
     
 
 ## Future goals
-  * Extend `rc_switch-protocol` and `remote_base` to allow the configuration of a custom protocol, similar like to `binary_sensor`.
+  * Extend `rc_switch-protocol` and `remote_base` to allow the configuration of a custom protocol, similar like for `binary_sensor`.
   * Try to get my changes inside the ESPHOME sources merged into the origin sources 
   * Maybe, make the decoder configurable for various RF-based sensors.
 
