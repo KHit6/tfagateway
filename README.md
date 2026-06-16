@@ -12,13 +12,20 @@ I've successful tested with TFA Dostmann 30.3206.02 and 30.3249.02 devices. I gu
 
 ![TFA 30.3206.02](doc/30.3206.02.png)   ![TFA 30.3249.02](doc/30.3249.02.png)
 
+## Variants
+Currently I provide three esphome configuration yaml-files:
+  * tfagateway.yaml - it was the base targeted to the modified Sonoff RF-Bridge hardware incorporating a ESP8266 controller.
+  * tfagateway-c3-supermini.yaml - it targets to [RF-WiFi-Bridge](https://github.com/KHit6/RF-WiFi-Bridge/) hardware with an ESP32-C3 supermini assembled.
+  * tfagateway-xiao-s3.yaml - it targets to [RF-WiFi-Bridge](https://github.com/KHit6/RF-WiFi-Bridge/) hardware with an Seeed studio ESP32-S3 assembled.
+  
+All three configurations are interchangeable in terms of functionality..
 
 ## Implementation
-My solution consists of 5 files, the ESPHOME yaml-file enhanced with 4 C++ extension files and minor but important modifications on ESPHOME's files rc_switch_protocol.[h|cpp]. I've put the modified files from ESPHOME's sources together with lots of unmodified files from the same source in a separate 'external' directory.
+My solution consists of the ESPHOME yaml-file(s) enhanced with 4 C++ extension files and minor but important modifications on ESPHOME's files rc_switch_protocol.[h|cpp]. I've put the modified files from ESPHOME's sources together with lots of unmodified files from the same source in a separate 'external' directory.
 
-My first experiments with ESPHOME's rc_switch_protocol receive implementation did not behave like expected. For a successful receive of a valid pulse train I had to use a huge timing tolerance of 55 percent of the expected pulse lengths. Receiving was very unreliable. The raw output shows at the front of each pulse train one up to four sync pulses but the rc_switch_protocol implementation solely expects one sync pulse. So I modified 'rc_switch_protocol.cpp' to accept up to 5 sync pulses before break.
+My first experiments with ESPHOME's rc_switch_protocol receive implementation did not behave like expected. For a successful receive of a valid pulse train I had to use a huge timing tolerance of 55 percent of the expected pulse lengths. Receiving was very unreliable. The raw output shows at the front of each pulse train one up to four sync pulses but the rc_switch_protocol implementation solely expects one sync pulse. So I modified 'rc_switch_protocol.cpp' to accept more sync pulses before break.
 
-To receive a pulse sequence, `rc_switch_protocol` only offers the option with `binary_sensor` to configure a user-defined protocol. No such solution exists for 'sensor' devices. Therefore, I added my measured and calculated timings to `RC_SWITCH_PROTOCOLS[]`. `RCSwitchBase(770, 790, 260, 480, 480, 260, false)` works well with 25% tolerance.
+ `rc_switch_protocol` only offers the option with `binary_sensor` to configure a user-defined bit timing parameters. No such solution exists for 'sensor' devices. Therefore, I added my measured and calculated timings to `RC_SWITCH_PROTOCOLS[]`. `RCSwitchBase(773, 803, 228, 511, 468, 266, false)` works well with 25% tolerance.
 
 To verify the data's sanity I've added a backwards compatible data length (size) to 
 
@@ -35,14 +42,6 @@ Inside 'tfa_30_xx.[h|cpp]' all decoding and sanity checks of sensor data is hand
 The sensor device's address field is ignored since it changes with every power down of the device.
 
 I used ESPHOME at the command line. ESPHOME was installed with pipenv.
-
-## Variants
-Currently I provide three esphome configuration yaml-files:
-  * tfagateway.yaml - it was the base targeted to the modified Sonoff RF-Bridge hardware incorporating a 8266 controller.
-  * tfagateway-xiao-s3.yaml - it targets to RF-WiFi-Bridge hardware with an Seeed studio ESP32-S3 assembled.
-  * tfagateway-c3-supermini.yaml - it targets to RF-WiFi-Bridge hardware with an ESP32-C3 supermini assembled.
-
-All three configurations are interchangeable in terms of functionality..
 
 ## Use
   * clone the repository (git clone https://github.com/KHit6/tfagateway.git)
