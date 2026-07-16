@@ -1,5 +1,8 @@
 # Get reliable sensor data from TFA Sensors with ESPHOME
 
+## This project has been archived in favor of a better and more general solution.
+Please consider the [rf-sensor-bridge](https://github.com/KHit6/rf-sensor-bridge) example; it enables more reliable reception of sensor data without requiring changes to the ESPHome codebase.
+
 ## Introduction
 Within a home automation project I wanted to acquire the outdoor temperature and humidity, too. An installed outdoor sensor belonging to a simple weather station from TFA Dostmann (some are identical to La Crosse outdoor sensors) already transmits the information at a frequency of 433 MHz.
 To make things inexpensive and easy and yet in a nice case I bought a "Sonoff RF-Bridge". Unfortunately it was the bridge in version V2 with a currently not hacked RF-pre-processor. So I decided to bypass the pre-processor like described [here](https://community.home-assistant.io/t/new-sonoff-rf-bridge-board-need-flashing-help/344326/17). At the end this is a standard ESP8266 receiving a simple RF extracted bit stream at a GPIO-pin. 
